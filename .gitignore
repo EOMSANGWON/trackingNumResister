@@ -1,0 +1,15 @@
+# 환경 변수 파일 무시
+.env
+config.json
+secrets.yml
+
+# Python 가상 환경 무시
+venv/
+__pycache__/
+
+# Node.js 모듈 무시
+node_modules/
+
+# IDE 설정 파일 무시
+.vscode/
+.DS_Store
