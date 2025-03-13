@@ -70,27 +70,38 @@ def productOrderIdGetter(orderId,token):
     except Exception as e:
         print(f"에러발생 : {e}")
 
-#엑셀파일에서 운송장번호 , 주문번호 추출 (스마트스토어전용) + 상품주문번호열 추가하는 중...
+#엑셀파일에서 운송장번호 , 주문번호 추출 (스마트스토어전용) + 상품주문번호열 추가까지함
 def extractTrackingNum(file_path):
     df = pd.read_excel(file_path) #pd.read_excel(file_path) : 엑셀파일을 읽어 이차원 테이블 형식의 데이터로 정리한다.
-    extracted_data = df.loc[0:, ["운송장번호", "고객주문번호"]] #df.loc[] 를 이용하면 행(첫번째부터 57번째 행까지)과 열(운송장번호,고객주문번호)을 선택할 수 있다. // df.loc[행이름,열이름] : loc는 이름기반반
+    extracted_data = df.loc[:, ["운송장번호", "고객주문번호"]] #df.loc[] 를 이용하면 행(첫번째부터 57번째 행까지)과 열(운송장번호,고객주문번호)을 선택할 수 있다. // df.loc[행이름,열이름] : loc는 이름기반반
     extracted_data["운송장번호"] = extracted_data["운송장번호"].astype(str).str.replace("-", "", regex=False) #운송장 포맷 바꾸기 (하이픈빼기)
     filtered_data = extracted_data[extracted_data["고객주문번호"].astype(str).str.len() == 16].copy()#해석하자면 extracted_data인데 조건[해당 data의 고객주문번호 타입의 len이 16인]에 해당하는 extracted_data만 보는 것.
-    filtered_data.reset_index(drop=True, inplace=True) #인덱스재정렬
     filtered_data["상품주문번호"] = ""
+    filtered_data = filtered_data.reset_index(drop=True) #인덱스가 바뀌면 거의 필수라고 봐야되겠다.
+    
+    TheNumOfOrder = filtered_data.shape[0]
 
-    for i in range(filtered_data.shape[0]):
-        orderId = filtered_data.loc[i,"고객주문번호"]
-        productOrderId = productOrderIdGetter(orderId,token)
-        # if len(productOrderId)>1 :
-        #     for j in range(len(productOrderId)):
-        #         # 갯수의 -1 만큼 그 아래 행을 추가하고 "고객주문번호"에 data["data"][1], data["data"][2].. 를 기입한다.
-        #         filtered_data.loc[i,"상품주문번호"] = productOrderId[j]       
-        #          # 운송장번호와 고객주문번호는 동일하게 추가한다.
-        # else : 
-        filtered_data.loc[i,"상품주문번호"] = productOrderId[0]
-        print(productOrderId)
+    theLeftProductOrderList = []
+    i = 0
+
+    while i < TheNumOfOrder:
+        orderId = filtered_data.loc[i, "고객주문번호"]
+        trackingNum = filtered_data.loc[i, "운송장번호"]
+        productOrderIdList = productOrderIdGetter(orderId, token)
+        print(productOrderIdList)
+        if len(productOrderIdList)>1 :
+            for j in range(1, len(productOrderIdList)):
+                theLeftProductOrderList.append({"운송장번호":trackingNum,"고객주문번호":orderId,"상품주문번호":f"{productOrderIdList[j]}"})
+        
+        firstProductOrderId = productOrderIdList[0]
+        filtered_data.loc[i,"상품주문번호"] = firstProductOrderId
+
         time.sleep(0.5)
+        i += 1
+
+    new_data = pd.DataFrame(theLeftProductOrderList)
+    filtered_data = pd.concat([filtered_data, new_data], ignore_index=True)
+
     return filtered_data
 
 #발송처리
@@ -115,6 +126,8 @@ def insertTrackingNum(conn, productOrderId,trackingNum) :
     res = conn.getresponse()
     data = res.read()
     print("Response:", data.decode("utf-8"))
+
+
 
 
 sample = extractTrackingNum("파일접수 상세내역_30545779_20250311131133_dasada_sc.xlsx")
