@@ -15,7 +15,6 @@ function App() {
   const [loading,setLoading] = useState(false);
   const [isClickedSendAll, setClickedSendAll]= useState(false);
   const [hoverIndex, setHoverIndex] = useState(null);
-
   const clickGetButton = async() =>{
     setLoading(true);
     if (files.length === 0) {
@@ -97,6 +96,9 @@ function App() {
       }
       setResponseData(updatedData);
       setLoading(false);
+
+      const successCount = updatedData.filter(item => item.발송상태 ==="발송완료").length;
+      alert(`발송 시도 건 : ${updatedData.length}, 발송 성공 건 : ${successCount}`)
     }
 
   return (
@@ -135,7 +137,7 @@ function App() {
                               <th className="border">운송장번호</th>
                               <th className="border">고객주문번호</th>
                               <th className="border">상품주문번호</th>
-                              <th className="border">결과</th>
+                              <th className="border">상 태</th>
                             </tr>
                           </thead>
                           <tbody>
